@@ -2,3 +2,11 @@ https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml
 https://feeds.bbci.co.uk/news/rss.xml
 https://news.ycombinator.com/rss
 https://techcrunch.com/feed/
+https://openai.com/news/rss.xml
+https://huggingface.co/blog/feed.xml
+https://www.marktechpost.com/feed/
+https://www.technologyreview.com/topic/artificial-intelligence/feed/
+https://blog.google/technology/ai/rss/
+https://www.theverge.com/rss/ai-artificial-intelligence/index.xml
+https://rss.arxiv.org/rss/cs.AI
+https://www.reddit.com/r/LocalLLaMA/.rss
