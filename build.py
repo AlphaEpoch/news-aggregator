@@ -28,7 +28,7 @@ for url in feeds:
     except Exception as e:
         print(f"Error parsing {url}: {e}")
 
-# Generate Minimalist Brutalist HTML
+# Generate Minimalist Dark Matrix HTML
 current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M UTC")
 
 html_content = f"""<!DOCTYPE html>
@@ -36,21 +36,80 @@ html_content = f"""<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minimalist News Feed</title>
+    <title>Terminal // News_Feed</title>
     <style>
-        body {{ font-family: monospace; max-width: 800px; margin: 40px auto; padding: 0 20px; background: #fff; color: #000; line-height: 1.5; }}
-        h1 {{ font-size: 1.5rem; border-bottom: 2px solid #000; padding-bottom: 5px; }}
-        .meta {{ color: #666; margin-bottom: 30px; font-size: 0.9rem; }}
-        ul {{ list-style-type: none; padding: 0; }}
-        li {{ margin-bottom: 12px; }}
-        a {{ color: #0000ee; text-decoration: none; }}
-        a:hover {{ text-decoration: underline; }}
-        .source {{ color: #666; font-size: 0.85rem; margin-left: 8px; }}
+        /* Matrix Terminal Aesthetic */
+        body {{ 
+            font-family: 'Courier New', Courier, monospace; 
+            max-width: 900px; 
+            margin: 40px auto; 
+            padding: 0 20px; 
+            background-color: #0d0d0d; 
+            color: #00ff41; 
+            line-height: 1.6; 
+        }}
+        
+        /* Custom text selection colors */
+        ::selection {{
+            background: #00ff41;
+            color: #000;
+        }}
+
+        h1 {{ 
+            font-size: 1.6rem; 
+            border-bottom: 1px dashed #00ff41; 
+            padding-bottom: 10px; 
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+        }}
+
+        .meta {{ 
+            color: #008f11; 
+            margin-bottom: 30px; 
+            font-size: 0.85rem; 
+        }}
+
+        ul {{ 
+            list-style-type: none; 
+            padding: 0; 
+        }}
+
+        li {{ 
+            margin-bottom: 14px; 
+            display: flex;
+            align-items: flex-start;
+        }}
+
+        /* Terminal prompt pointer before each link */
+        li::before {{
+            content: "> ";
+            margin-right: 8px;
+            color: #008f11;
+            flex-shrink: 0;
+        }}
+
+        a {{ 
+            color: #00ff41; 
+            text-decoration: none; 
+        }}
+
+        a:hover {{ 
+            background-color: #00ff41;
+            color: #000;
+        }}
+
+        .source {{ 
+            color: #008f11; 
+            font-size: 0.8rem; 
+            margin-left: 10px; 
+            white-space: nowrap;
+        }}
     </style>
 </head>
 <body>
-    <h1>MINIMALIST NEWS</h1>
-    <div class="meta">Updated: {current_time} | Feeds tracking: {len(feeds)}</div>
+    <h1>root@news:~# cat latest_feeds</h1>
+    <div class="meta">SYS_STATUS: ONLINE | TIMESTAMP: {current_time} | NODES: {len(feeds)}</div>
     <ul>
 """
 
@@ -65,4 +124,4 @@ html_content += """    </ul>
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html_content)
 
-print("Site built successfully!")
+print("Matrix terminal site built successfully!")
