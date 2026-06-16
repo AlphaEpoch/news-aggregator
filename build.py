@@ -1,34 +1,66 @@
 import datetime
 import xml.etree.ElementTree as ET
 import urllib.request
+import random
 
-# Read your custom feeds
-with open("feeds.txt", "r") as f:
-    feeds = [line.strip() for line in f if line.strip()]
+# Matrix Quote Engine
+QUOTES = [
+    "\"You take the red pill, you stay in Wonderland, and I show you how deep the rabbit hole goes.\" — Morpheus",
+    "\"There is a difference between knowing the path and walking the path.\" — Morpheus",
+    "\"The Matrix is a system, Neo. That system is our enemy.\" — Morpheus",
+    "\"What's really going to bake your noodle later on is, would you still have broken it if I hadn't said anything?\" — The Oracle",
+    "\"Ever have that feeling where you're not sure if you're awake or dreaming?\" — Neo",
+    "\"I'm trying to free your mind, Neo. But I can only show you the door. You're the one that has to walk through it.\" — Morpheus",
+    "\"Choice is an illusion created between those with power and those without.\" — The Merovingian",
+    "\"It is the question that drives us, Neo. It's the question that brought you here.\" — Trinity",
+    "\"The body cannot live without the mind.\" — Morpheus",
+    "\"Free your mind.\" — Morpheus"
+]
+selected_quote = random.choice(QUOTES)
 
-articles = []
+articles_by_category = {}
+current_category = "UNCATEGORIZED"
 
-# Fetch and parse feeds
-for url in feeds:
-    try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=10) as response:
-            xml_data = response.read()
-            root = ET.fromstring(xml_data)
-            
-            # Find channel title
-            channel_title = root.find('.//channel/title').text or "Unknown Source"
-            
-            # Grab top 5 items from each feed
-            items = root.findall('.//item')[:5]
-            for item in items:
-                title = item.find('title').text
-                link = item.find('link').text
-                articles.append({"title": title, "link": link, "source": channel_title})
-    except Exception as e:
-        print(f"Error parsing {url}: {e}")
+# Read feeds and parse on the fly to preserve category order
+with open("feeds.txt", "r", encoding="utf-8") as f:
+    for line in f:
+        line = line.strip()
+        if not line:
+            continue
+        
+        # If the line is a comment/category marker
+        if line.startswith("#"):
+            current_category = line.replace("#", "").strip()
+            if current_category and current_category not in articles_by_category:
+                articles_by_category[current_category] = []
+            continue
 
-# Generate Minimalist Dark Matrix HTML
+        # If it's a URL, parse it under the current category
+        url = line
+        try:
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=10) as response:
+                xml_data = response.read()
+                root = ET.fromstring(xml_data)
+                
+                channel_title = root.find('.//channel/title').text or "Unknown Source"
+                items = root.findall('.//item')[:5]
+                
+                if current_category not in articles_by_category:
+                    articles_by_category[current_category] = []
+
+                for item in items:
+                    title = item.find('title').text
+                    link = item.find('link').text
+                    articles_by_category[current_category].append({
+                        "title": title, 
+                        "link": link, 
+                        "source": channel_title
+                    })
+        except Exception as e:
+            print(f"Error parsing {url}: {e}")
+
+# Generate HTML
 current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M UTC")
 
 html_content = f"""<!DOCTYPE html>
@@ -38,7 +70,6 @@ html_content = f"""<!DOCTYPE html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Terminal // News_Feed</title>
     <style>
-        /* Matrix Terminal Aesthetic */
         body {{ 
             font-family: 'Courier New', Courier, monospace; 
             max-width: 900px; 
@@ -48,80 +79,64 @@ html_content = f"""<!DOCTYPE html>
             color: #00ff41; 
             line-height: 1.6; 
         }}
-        
-        /* Custom text selection colors */
-        ::selection {{
-            background: #00ff41;
-            color: #000;
-        }}
-
+        ::selection {{ background: #00ff41; color: #000; }}
         h1 {{ 
             font-size: 1.6rem; 
             border-bottom: 1px dashed #00ff41; 
             padding-bottom: 10px; 
+            margin-bottom: 5px;
             letter-spacing: 2px;
             text-transform: uppercase;
             text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
         }}
-
-        .meta {{ 
-            color: #008f11; 
-            margin-bottom: 30px; 
-            font-size: 0.85rem; 
+        .quote-box {{
+            font-style: italic;
+            color: #00ff41;
+            opacity: 0.85;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-size: 0.95rem;
+            word-wrap: break-word;
         }}
-
-        ul {{ 
-            list-style-type: none; 
-            padding: 0; 
+        .category-header {{
+            font-size: 1.1rem;
+            color: #00ff41;
+            margin-top: 40px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            text-shadow: 0 0 3px rgba(0, 255, 65, 0.3);
         }}
-
-        li {{ 
-            margin-bottom: 14px; 
-            display: flex;
-            align-items: flex-start;
-        }}
-
-        /* Terminal prompt pointer before each link */
-        li::before {{
-            content: "> ";
-            margin-right: 8px;
-            color: #008f11;
-            flex-shrink: 0;
-        }}
-
-        a {{ 
-            color: #00ff41; 
-            text-decoration: none; 
-        }}
-
-        a:hover {{ 
-            background-color: #00ff41;
-            color: #000;
-        }}
-
-        .source {{ 
-            color: #008f11; 
-            font-size: 0.8rem; 
-            margin-left: 10px; 
-            white-space: nowrap;
-        }}
+        .meta {{ color: #008f11; margin-bottom: 20px; font-size: 0.85rem; border-top: 1px dashed #008f11; padding-top: 5px; }}
+        ul {{ list-style-type: none; padding: 0; margin-bottom: 30px; }}
+        li {{ margin-bottom: 14px; display: flex; align-items: flex-start; }}
+        li::before {{ content: "> "; margin-right: 8px; color: #008f11; flex-shrink: 0; }}
+        a {{ color: #00ff41; text-decoration: none; }}
+        a:hover {{ background-color: #00ff41; color: #000; }}
+        .source {{ color: #008f11; font-size: 0.8rem; margin-left: 10px; white-space: nowrap; }}
     </style>
 </head>
 <body>
-    <h1>//r00t n3ws//</h1>
-    <div class="meta">SYS_STATUS: ONLINE | TIMESTAMP: {current_time} | NODES: {len(feeds)}</div>
-    <ul>
+    <h1>root@news:~# cat latest_feeds</h1>
+    <div class="quote-box">{selected_quote}</div>
+    <div class="meta">SYS_STATUS: ONLINE | TIMESTAMP: {current_time}</div>
 """
 
-for art in articles:
-    html_content += f'        <li><a href="{art["link"]}" target="_blank">{art["title"]}</a><span class="source">[{art["source"]}]</span></li>\n'
+for cat_name, articles in articles_by_category.items():
+    if not articles: 
+        continue
+        
+    html_content += f'    <div class="category-header">{cat_name}</div>\n    <ul>\n'
+    
+    for art in articles:
+        html_content += f'        <li><a href="{art["link"]}" target="_blank">{art["title"]}</a><span class="source">[{art["source"]}]</span></li>\n'
+        
+    html_content += "    </ul>\n"
 
-html_content += """    </ul>
-</body>
+html_content += """</body>
 </html>"""
 
-# Save the final static page
+# Save the final file
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html_content)
 
-print("Matrix terminal site built successfully!")
+print("Categorized site with dynamic quote built successfully!")
