@@ -52,10 +52,26 @@ with open("feeds.txt", "r", encoding="utf-8") as f:
                 for item in items:
                     title = item.find('title').text
                     link = item.find('link').text
+                    
+                    # Tag/Category Extraction Logic
+                    tags = []
+                    category_elements = item.findall('category')
+                    for cat in category_elements:
+                        if cat.text:
+                            cleaned_tag = cat.text.strip().lower()
+                            # Skip long taxonomy paths or empty strings
+                            if cleaned_tag and "/" not in cleaned_tag and len(cleaned_tag) < 25:
+                                if cleaned_tag not in tags:
+                                    tags.append(cleaned_tag)
+                    
+                    # Limit to the top 5 unique tags
+                    tags = tags[:5]
+
                     articles_by_category[current_category].append({
                         "title": title, 
                         "link": link, 
-                        "source": channel_title
+                        "source": channel_title,
+                        "tags": tags
                     })
         except Exception as e:
             print(f"Error parsing {url}: {e}")
@@ -108,11 +124,38 @@ html_content = f"""<!DOCTYPE html>
         }}
         .meta {{ color: #008f11; margin-bottom: 20px; font-size: 0.85rem; border-top: 1px dashed #008f11; padding-top: 5px; }}
         ul {{ list-style-type: none; padding: 0; margin-bottom: 30px; }}
-        li {{ margin-bottom: 14px; display: flex; align-items: flex-start; }}
-        li::before {{ content: "> "; margin-right: 8px; color: #008f11; flex-shrink: 0; }}
+        
+        /* Adjusted layout to house tags cleanly underneath */
+        li {{ 
+            margin-bottom: 18px; 
+            display: flex; 
+            flex-direction: column;
+            align-items: flex-start; 
+        }}
+        .link-row {{
+            display: flex;
+            align-items: flex-start;
+            width: 100%;
+        }}
+        .link-row::before {{ content: "> "; margin-right: 8px; color: #008f11; flex-shrink: 0; }}
+        
         a {{ color: #00ff41; text-decoration: none; }}
         a:hover {{ background-color: #00ff41; color: #000; }}
         .source {{ color: #008f11; font-size: 0.8rem; margin-left: 10px; white-space: nowrap; }}
+        
+        /* Terminal Meta Tags Row Style */
+        .tag-row {{
+            margin-left: 20px;
+            font-size: 0.75rem;
+            color: #008f11;
+            opacity: 0.8;
+            margin-top: 2px;
+            word-wrap: break-word;
+        }}
+        .tag {{
+            margin-right: 8px;
+            display: inline-block;
+        }}
     </style>
 </head>
 <body>
@@ -128,7 +171,15 @@ for cat_name, articles in articles_by_category.items():
     html_content += f'    <div class="category-header">{cat_name}</div>\n    <ul>\n'
     
     for art in articles:
-        html_content += f'        <li><a href="{art["link"]}" target="_blank">{art["title"]}</a><span class="source">[{art["source"]}]</span></li>\n'
+        # Build main line row
+        html_content += f'        <li>\n            <div class="link-row"><a href="{art["link"]}" target="_blank">{art["title"]}</a><span class="source">[{art["source"]}]</span></div>\n'
+        
+        # Build tags sub-row if tags exist
+        if art["tags"]:
+            tag_strings = [f"#{t}" for t in art["tags"]]
+            html_content += f'            <div class="tag-row">tags: {" ".join(tag_strings)}</div>\n'
+            
+        html_content += "        </li>\n"
         
     html_content += "    </ul>\n"
 
@@ -139,4 +190,4 @@ html_content += """</body>
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html_content)
 
-print("Categorized site with dynamic quote built successfully!")
+print("Categorized site with sub-tags built successfully!")
