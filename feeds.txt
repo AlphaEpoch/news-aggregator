@@ -1,4 +1,3 @@
-# === ARTIFICIAL INTELLIGENCE ===
 https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml
 https://feeds.bbci.co.uk/news/rss.xml
 https://techcrunch.com/feed/
@@ -7,29 +6,20 @@ https://huggingface.co/blog/feed.xml
 https://www.marktechpost.com/feed/
 https://www.technologyreview.com/topic/artificial-intelligence/feed/
 https://blog.google/technology/ai/rss/
-
-# === SPORTS ===
 https://www.theverge.com/rss/ai-artificial-intelligence/index.xml
 https://www.espn.com/espn/rss/news
 https://www.espn.com/espn/rss/nfl/news
-
-# === MUAY THAI & COMBAT ===
 https://www.onefc.com/category/muay-thai/feed/
 https://www.onefc.com/category/live-results/feed/
 https://combatpress.com/category/muay-thai/feed/
 https://www.badlefthook.com/rss/current.xml
-
-# === MUSIC ===
 https://the-counterforce.org/rss-how-to/
 https://diyconspiracy.net/board/viewtopic.php?t=33
-
-# === COUNTER CULTURE ===
 https://screenanarchy.com/about/rss.html
 https://diyconspiracy.net/board/viewtopic.php?t=33
 https://crimethinc.com/feed
 https://c4ss.org/feed
-
-# === LIFESTYLE ===
 https://rss.feedspot.com/minimalist_rss_feeds/
 https://rss.feedspot.com/simple_living_rss_feeds/
 https://www.reddit.com/r/Anarchy101/comments/16u39vj/best_anarchistleftist_resources_on_the_web/
+https://thegunblog.ca/feed/
