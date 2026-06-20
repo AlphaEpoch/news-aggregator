@@ -14,7 +14,7 @@ QUOTES = [
     "\"What's really going to bake your noodle later on is, would you still have broken it if I hadn't said anything?\" — The Oracle",
     "\"Ever have that feeling where you're not sure if you're awake or dreaming?\" — Neo",
     "\"I'm trying to free your mind, Neo. But I can only show you the door. You're the one that has to walk through it.\" — Morpheus",
-    "\"Choice is an illusion created between those with power and those without.\" — The Merovingian",
+    "\"Choice is an illusion created between those with power and those without.\" — The Merowningian",
     "\"It is the question that drives us, Neo. It's the question that brought you here.\" — Trinity",
     "\"The body cannot live without the mind.\" — Morpheus",
     "\"Free your mind.\" — Morpheus"
@@ -22,7 +22,7 @@ QUOTES = [
 selected_quote = random.choice(QUOTES)
 
 all_articles = []
-unique_sources = set()  # Track all discovered clean domains for the dynamic header filter
+unique_sources = set()  
 target_timezone = ZoneInfo("America/New_York")
 now_eastern = datetime.datetime.now(target_timezone)
 
@@ -86,7 +86,6 @@ for url in feeds:
             raw_title = root.find('.//channel/title').text or "Unknown Source"
             clean_source = strip_to_clean_domain(raw_title, url)
             
-            # Add to our filter switch tracking set
             unique_sources.add(clean_source)
             
             items = root.findall('.//item')[:3]
@@ -127,13 +126,22 @@ for url in feeds:
 # Chronological sort (Newest at top)
 all_articles.sort(key=lambda x: x["datetime"], reverse=True)
 
+# Extract top 3 links for the scrolling banner
+trending_items = all_articles[:3]
+marquee_elements = []
+for index, item in enumerate(trending_items, start=1):
+    # Clean and escape the titles for safe presentation inside uppercase parameters
+    display_title = item['title'].strip().upper()
+    element_string = f'<span class="marquee-tag">TOP_{index}:</span> <a class="marquee-link" href="{item["link"]}" target="_blank">{display_title}</a>'
+    marquee_elements.append(element_string)
+
+# Separate the rolling string components using a clean terminal separator line symbol
+marquee_content_html = " &nbsp;&nbsp;&nbsp;&nbsp;||&nbsp;&nbsp;&nbsp;&nbsp; ".join(marquee_elements)
+
 # Generate HTML
 current_time_str = now_eastern.strftime("%Y-%m-%d %I:%M %p ET")
-
-# Sort unique sources alphabetically for clean layout placement
 sorted_sources = sorted(list(unique_sources))
 
-# Build out the text-toggles bar HTML
 toggle_switches_html = ""
 for source in sorted_sources:
     toggle_switches_html += f'<span class="filter-btn active" onclick="toggleSource(\'{source}\', this)">[x] {source}</span> '
@@ -143,12 +151,55 @@ html_content = f"""<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>News Terminal</title>
+    <title>Terminal // Chronological_Feed</title>
     <style>
+        /* CSS Ticker Bar Container Styles */
+        .marquee-wrapper {{
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #001f04;
+            border-bottom: 1px solid #00ff41;
+            z-index: 9999;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 255, 65, 0.2);
+            padding: 6px 0;
+        }}
+        .marquee-container {{
+            display: flex;
+            white-space: nowrap;
+            padding-left: 100%;
+            animation: marquee 35s linear infinite;
+        }}
+        /* Stop ticker track animation on mouse-hover for accessible reading stability */
+        .marquee-container:hover {{
+            animation-play-state: paused;
+        }}
+        .marquee-tag {{
+            color: #00ff41;
+            font-weight: bold;
+        }}
+        a.marquee-link {{
+            color: #a3ffa6;
+            text-decoration: none;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+        }}
+        a.marquee-link:hover {{
+            background-color: #00ff41;
+            color: #000 !important;
+        }}
+        
+        @keyframes marquee {{
+            0% {{ transform: translate3d(0, 0, 0); }}
+            100% {{ transform: translate3d(-100%, 0, 0); }}
+        }}
+
         body {{ 
             font-family: 'Courier New', Courier, monospace; 
             max-width: 900px; 
-            margin: 40px auto; 
+            margin: 80px auto 40px auto; /* Increased top margin so body text clears the fixed ticker */
             padding: 0 20px; 
             background-color: #0d0d0d; 
             color: #00ff41; 
@@ -175,7 +226,6 @@ html_content = f"""<!DOCTYPE html>
         }}
         .meta {{ color: #008f11; margin-bottom: 15px; font-size: 0.85rem; border-top: 1px dashed #008f11; padding-top: 5px; }}
         
-        /* Terminal Source Filters bar */
         .filter-bar {{
             font-size: 0.8rem;
             color: #008f11;
@@ -240,7 +290,13 @@ html_content = f"""<!DOCTYPE html>
     </style>
 </head>
 <body>
-    <h1>news</h1>
+    <div class="marquee-wrapper">
+        <div class="marquee-container">
+            {marquee_content_html}
+        </div>
+    </div>
+
+    <h1>root@news:~# cat unified_timeline</h1>
     <div class="quote-box">{selected_quote}</div>
     <div class="meta">SYS_STATUS: ONLINE | TIMESTAMP: {current_time_str}</div>
     
@@ -255,7 +311,6 @@ html_content = f"""<!DOCTYPE html>
 for art in all_articles:
     time_badge = compute_time_ago(art["datetime"], now_eastern)
     
-    # Notice the data-source attribute added to the <li> container below
     html_content += f'        <li data-source="{art["source"]}">\n            <div class="link-row"><a href="{art["link"]}" target="_blank">{art["title"]}</a><span class="source">[{art["source"]}]</span></div>\n'
     
     tag_build = f"posted: {time_badge}"
@@ -272,13 +327,11 @@ html_content += """    </ul>
             const articles = document.querySelectorAll('li[data-source="' + sourceName + '"]');
             
             if (isCurrentlyActive) {
-                // Turn feed off
                 element.classList.remove('active');
                 element.classList.add('inactive');
                 element.innerText = '[ ] ' + sourceName;
                 articles.forEach(el => el.style.display = 'none');
             } else {
-                // Turn feed back on
                 element.classList.remove('inactive');
                 element.classList.add('active');
                 element.innerText = '[x] ' + sourceName;
@@ -292,4 +345,4 @@ html_content += """    </ul>
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html_content)
 
-print("Timeline compiled successfully with integrated JavaScript filtering matrices.")
+print("Unified timeline compiled successfully with top-line scrolling wireframe.")
