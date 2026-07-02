@@ -1,3 +1,4 @@
+https://futurism.com/feed
 https://coinmarketcap.com/alexandria/categories/crypto-com/feed
 https://solana.com/developers/blog/rss.xml
 https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml
