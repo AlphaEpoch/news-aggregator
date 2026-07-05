@@ -1,15 +1,14 @@
+[tech]
 https://futurism.com/feed
 https://coinmarketcap.com/alexandria/categories/crypto-com/feed
 https://solana.com/developers/blog/rss.xml
-https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml
-https://feeds.bbci.co.uk/news/rss.xml
 https://techcrunch.com/feed/
 https://openai.com/news/rss.xml
-https://huggingface.co/blog/feed.xml
 https://www.marktechpost.com/feed/
 https://www.technologyreview.com/topic/artificial-intelligence/feed/
 https://blog.google/technology/ai/rss/
-https://www.theverge.com/rss/ai-artificial-intelligence/index.xml
+
+[soorts]
 https://www.espn.com/espn/rss/news
 https://www.espn.com/espn/rss/nfl/news
 https://www.onefc.com/category/muay-thai/feed/
@@ -17,6 +16,8 @@ https://www.onefc.com/category/live-results/feed/
 https://combatpress.com/category/muay-thai/feed/
 https://www.badlefthook.com/rss/current.xml
 https://the-counterforce.org/rss-how-to/
+
+[world]
 https://diyconspiracy.net/board/viewtopic.php?t=33
 https://screenanarchy.com/about/rss.html
 https://diyconspiracy.net/board/viewtopic.php?t=33
@@ -26,3 +27,6 @@ https://rss.feedspot.com/minimalist_rss_feeds/
 https://rss.feedspot.com/simple_living_rss_feeds/
 https://www.reddit.com/r/Anarchy101/comments/16u39vj/best_anarchistleftist_resources_on_the_web/
 https://thegunblog.ca/feed/
+https://www.theverge.com/rss/ai-artificial-intelligence/index.xml
+https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml
+https://feeds.bbci.co.uk/news/rss.xml
