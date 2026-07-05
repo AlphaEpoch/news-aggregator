@@ -8,7 +8,7 @@ https://www.marktechpost.com/feed/
 https://www.technologyreview.com/topic/artificial-intelligence/feed/
 https://blog.google/technology/ai/rss/
 
-[soorts]
+[sports]
 https://www.espn.com/espn/rss/news
 https://www.espn.com/espn/rss/nfl/news
 https://www.onefc.com/category/muay-thai/feed/
