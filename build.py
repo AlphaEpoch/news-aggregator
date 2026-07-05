@@ -55,8 +55,8 @@ def strip_to_clean_domain(channel_title, feed_url):
         return cleaned.replace(" ", ".")
     return cleaned
 
-# Single feed worker function for concurrent fetching execution
-def fetch_single_feed(url):
+# Single feed worker passing category parameter forward
+def fetch_single_feed(url, category):
     feed_articles = []
     try:
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -96,42 +96,80 @@ def fetch_single_feed(url):
                     "link": link, 
                     "source": clean_source,
                     "tags": tags,
-                    "datetime": dt_eastern
+                    "datetime": dt_eastern,
+                    "category": category
                 })
     except Exception as e:
         print(f"Error parsing {url}: {e}")
     return feed_articles
 
-# Read feeds
-with open("feeds.txt", "r", encoding="utf-8") as f:
-    feeds = [line.strip() for line in f if line.strip() and not line.strip().startswith("#")]
+# Parse feeds.txt with multi-category state detection
+feeds_to_load = []
+current_category = "world" # Default fallback framework flag
 
-# OPTIMIZATION: Fetch all 30 feeds concurrently in parallel threads
-articles_by_source = {}
+with open("feeds.txt", "r", encoding="utf-8") as f:
+    for line in f:
+        line_str = line.strip()
+        if not line_str or line_str.startswith("#"):
+            continue
+        # Catch category definition headers
+        if line_str.startswith("[") and line_str.endswith("]"):
+            current_category = line_str[1:-1].strip().lower()
+            continue
+        feeds_to_load.append((line_str, current_category))
+
+# Fetch asynchronously in parallel
+all_scraped_articles = []
 unique_sources = set()
 
 with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-    results = executor.map(fetch_single_feed, feeds)
-    for res in results:
+    futures = {executor.submit(fetch_single_feed, url, cat): url for url, cat in feeds_to_load}
+    for future in concurrent.futures.as_completed(futures):
+        res = future.result()
         if res:
-            source_name = res[0]["source"]
-            unique_sources.add(source_name)
-            # Sort each source individual stack by date
-            res.sort(key=lambda x: x["datetime"], reverse=True)
-            articles_by_source[source_name] = res
+            all_scraped_articles.extend(res)
+            for item in res:
+                unique_sources.add(item["source"])
 
-# VARIETY GENERATOR: Round-Robin interleaving logic
-mixed_articles = []
-while any(articles_by_source.values()):
-    # Get all remaining active sources and sort them by the date of their freshest item
-    active_sources = [s for s in articles_by_source if articles_by_source[s]]
-    active_sources.sort(key=lambda s: articles_by_source[s][0]["datetime"], reverse=True)
-    
-    for source in active_sources:
-        if articles_by_source[source]:
-            mixed_articles.append(articles_by_source[source].pop(0))
+# Chronological sort for raw extraction
+all_scraped_articles.sort(key=lambda x: x["datetime"], reverse=True)
 
-# Generate HTML
+# 1. Extract Top 5 Links
+top_5_highlights = all_scraped_articles[:5]
+remaining_pool = all_scraped_articles[5:]
+
+# 2. Segment remaining items into distinct buckets
+categories_map = {"tech": [], "sports": [], "world": []}
+for art in remaining_pool:
+    cat_tag = art["category"]
+    if cat_tag in categories_map:
+        categories_map[cat_tag].append(art)
+    else:
+        categories_map["world"].append(art) # Default structural catch-all
+
+# Generate Interleaved distribution within each section bucket to preserve variety
+def interleave_category_bucket(articles_list):
+    if not articles_list: return []
+    # Group by source inside this specific bucket
+    by_src = {}
+    for a in articles_list:
+        by_src.setdefault(a["source"], []).append(a)
+    for src in by_src:
+        by_src[src].sort(key=lambda x: x["datetime"], reverse=True)
+        
+    mixed = []
+    while any(by_src.values()):
+        active_srcs = [s for s in by_src if by_src[s]]
+        active_srcs.sort(key=lambda s: by_src[s][0]["datetime"], reverse=True)
+        for src in active_srcs:
+            if by_src[src]: mixed.append(by_src[src].pop(0))
+    return mixed
+
+tech_articles = interleave_category_bucket(categories_map["tech"])
+sports_articles = interleave_category_bucket(categories_map["sports"])
+world_articles = interleave_category_bucket(categories_map["world"])
+
+# Render HTML
 current_time_str = now_eastern.strftime("%Y-%m-%d %I:%M %p ET")
 sorted_sources = sorted(list(unique_sources))
 
@@ -139,12 +177,25 @@ toggle_switches_html = ""
 for source in sorted_sources:
     toggle_switches_html += f'<span class="filter-btn active" onclick="toggleSource(\'{source}\', this)">[x] {source}</span> '
 
+# Component helper to map article dictionaries directly to line elements
+def render_list_items(articles_array):
+    lines = ""
+    if not articles_array:
+        return '        <li class="empty-notice">&gt; NO ACTIVE DATA IN VECTOR CORRIDOR</li>\n'
+    for art in articles_array:
+        time_badge = compute_time_ago(art["datetime"], now_eastern)
+        lines += f'        <li data-source="{art["source"]}">\n            <div class="link-row"><a href="{art["link"]}" target="_blank">{art["title"]}</a><span class="source">[{art["source"]}]</span></div>\n'
+        tag_build = f"posted: {time_badge}"
+        if art["tags"]: tag_build += f" | tags: {' '.join([f'#{t}' for t in art['tags']])}"
+        lines += f'            <div class="tag-row">{tag_build}</div>\n        </li>\n'
+    return lines
+
 html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terminal // Chronological_Feed</title>
+    <title>Terminal // Segmented_Matrix</title>
     <style>
         body {{ 
             font-family: 'Courier New', Courier, monospace; 
@@ -165,6 +216,16 @@ html_content = f"""<!DOCTYPE html>
             text-transform: uppercase;
             text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
         }}
+        h2 {{
+            font-size: 1.1rem;
+            color: #00ff41;
+            border-bottom: 1px solid #00330b;
+            padding-bottom: 4px;
+            margin-top: 40px;
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }}
         .quote-box {{
             font-style: italic;
             color: #00ff41;
@@ -175,12 +236,13 @@ html_content = f"""<!DOCTYPE html>
             word-wrap: break-word;
         }}
         .meta {{ color: #008f11; margin-bottom: 15px; font-size: 0.85rem; border-top: 1px dashed #008f11; padding-top: 5px; }}
-        .filter-bar {{ font-size: 0.8rem; color: #008f11; margin-bottom: 30px; word-wrap: break-word; line-height: 2.0; }}
+        .filter-bar {{ font-size: 0.8rem; color: #008f11; margin-bottom: 20px; word-wrap: break-word; line-height: 2.0; }}
         .filter-btn {{ margin-right: 12px; cursor: pointer; user-select: none; white-space: nowrap; }}
         .filter-btn.active {{ color: #00ff41; text-shadow: 0 0 2px rgba(0, 255, 65, 0.4); }}
         .filter-btn.inactive {{ color: #00330b; }}
-        ul {{ list-style-type: none; padding: 0; margin-top: 20px; }}
+        ul {{ list-style-type: none; padding: 0; margin-top: 10px; }}
         li {{ margin-bottom: 18px; display: flex; flex-direction: column; align-items: flex-start; }}
+        .empty-notice {{ color: #00330b; font-size: 0.85rem; }}
         .link-row {{ display: flex; align-items: flex-start; width: 100%; border-bottom: 1px dotted rgba(255, 255, 255, 0.15); padding-bottom: 4px; }}
         .link-row::before {{ content: "> "; margin-right: 8px; color: #008f11; flex-shrink: 0; }}
         a {{ color: #00ff41; text-decoration: none; text-transform: uppercase; }}
@@ -195,35 +257,39 @@ html_content = f"""<!DOCTYPE html>
     <div class="quote-box">{selected_quote}</div>
     <div class="meta">SYS_STATUS: ONLINE | TIMESTAMP: {current_time_str}</div>
     <div class="filter-bar"><span>FILTER_FLAGS: </span>{toggle_switches_html}</div>
+    
+    <h2>// TOP_5_GLOBAL_HIGHLIGHTS</h2>
     <ul>
-"""
+{render_list_items(top_5_highlights)}    </ul>
 
-for art in mixed_articles:
-    time_badge = compute_time_ago(art["datetime"], now_eastern)
-    html_content += f'        <li data-source="{art["source"]}">\n            <div class="link-row"><a href="{art["link"]}" target="_blank">{art["title"]}</a><span class="source">[{art["source"]}]</span></div>\n'
-    tag_build = f"posted: {time_badge}"
-    if art["tags"]: tag_build += f" | tags: {' '.join([f'#{t}' for t in art['tags']])}"
-    html_content += f'            <div class="tag-row">{tag_build}</div>\n        </li>\n'
+    <h2>// SECTOR_01: TECH_AND_DECENTRALIZED_INFRASTRUCTURE</h2>
+    <ul>
+{render_list_items(tech_articles)}    </ul>
 
-html_content += """    </ul>
+    <h2>// SECTOR_02: SPORTS_AND_COMBAT_ENGAGEMENTS</h2>
+    <ul>
+{render_list_items(sports_articles)}    </ul>
+
+    <h2>// SECTOR_03: WORLD_AND_UNALIGNED_INTELLIGENCE</h2>
+    <ul>
+{render_list_items(world_articles)}    </ul>
+
     <script>
-        function toggleSource(sourceName, element) {
-            const isCurrentlyActive = element.value || element.classList.contains('active');
+        function toggleSource(sourceName, element) {{
+            const isCurrentlyActive = element.classList.contains('active');
             const articles = document.querySelectorAll('li[data-source="' + sourceName + '"]');
-            if (isCurrentlyActive) {
+            if (isCurrentlyActive) {{
                 element.classList.remove('active');
                 element.classList.add('inactive');
                 element.innerText = '[ ] ' + sourceName;
                 articles.forEach(el => el.style.display = 'none');
-                element.value = false;
-            } else {
+            }} else {{
                 element.classList.add('active');
                 element.classList.remove('inactive');
                 element.innerText = '[x] ' + sourceName;
                 articles.forEach(el => el.style.display = 'flex');
-                element.value = true;
-            }
-        }
+            }}
+        }}
     </script>
 </body>
 </html>"""
@@ -231,4 +297,4 @@ html_content += """    </ul>
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html_content)
 
-print("Optimized concurrent script successfully generated interleaved layout.")
+print("Categorized timeline layout engine compiled successfully.")
