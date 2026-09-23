@@ -1,5 +1,6 @@
 [tech]
 https://futurism.com/feed
+https://www.404media.co/rss/
 https://coinmarketcap.com/alexandria/categories/crypto-com/feed
 https://solana.com/developers/blog/rss.xml
 https://techcrunch.com/feed/
